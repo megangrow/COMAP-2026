@@ -53,16 +53,24 @@ def diffuse(nt):
                          v * dt / dx * (un[1:-1, 1:-1, 1:-1] - un[0:-2, 1:-1, 1:-1]) -
                          v * dt / dy * (un[1:-1, 1:-1, 1:-1] - un[1:-1, 0:-2, 1:-1]) -
                          v * dt / dz * (un[1:-1, 1:-1, 1:-1] - un[1:-1, 1:-1, 0:-2]))
-        u[0, :, :] = 1
+        u[0, :, :] = 1.3
         u[-1, :, :] = 1
-        u[:, 0, :] = 1
+        u[:, 0, :] = 2
         u[:, -1, :] = 1
-        u[:, :, 0] = 1
+        u[:, :, 0] = 1.2
         u[:, :, -1] = 1
 
 
         ax.cla()  # clear it each time + reset
-        ax.scatter(X, Y, Z, c=u, alpha=0.12)
+        mask = u > 1.1
+        ax.scatter(
+            X[mask],
+            Y[mask],
+            Z[mask],
+            c=u[mask],
+            cmap='plasma',
+            alpha=0.6
+        )
         ax.set_xlim(0, 2)
         ax.set_ylim(0, 2)
         ax.set_zlim(0, 2)
