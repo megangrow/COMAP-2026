@@ -4,39 +4,41 @@ from matplotlib import pyplot, cm
 from mpl_toolkits.mplot3d import Axes3D, axes3d  ##library for 3d projection plots
 
 ###variable declarations
-nx = 16
-ny = 16
-nz = 16
-nt = 25
-nu = .05 # a
-v = 2
-dx = 2 / (nx - 1)
-dy = 2 / (ny - 1)
-dz = 2 / (nz - 1)
-sigma = .25
+nx = 10
+ny = 10
+nz = 10
+length = 60
+width = 24
+height = 6
+nu = 0.078 # thermal diffusivity
+b = 0.00343 # thermal expansion
+dx = length / (nx - 1)
+dy = width / (ny - 1)
+dz = height / (nz - 1)
+sigma = .01
 dt = sigma * dx * dy * dz / nu
 
-x = numpy.linspace(0, 2, nx)
-y = numpy.linspace(0, 2, ny)
-z = numpy.linspace(0, 2, nz)
+x = numpy.linspace(0, 60, nx)
+y = numpy.linspace(0, 24, ny)
+z = numpy.linspace(0, 6, nz)
 
 u = numpy.ones((nx, ny, nz))  # create a 1xn vector of 1's
 un = numpy.ones((nx, ny, nz))
 
 ###Assign initial conditions
 # set hat function I.C. : u(.5<=x<=1 && .5<=y<=1 ) is 2
-u[int(.5 / dx):int(1 / dx + 1), int(.5 / dy):int(1 / dy + 1), int(.5 / dz):int(1 / dz + 1)] = 4
+u[:, :, :] = 21
 
 ###Run through nt timesteps
 def diffuse(nt):
-    u[int(.5 / dx):int(1 / dx + 1), int(.5 / dy):int(1 / dy + 1), int(.5 / dz):int(1 / dz + 1)] = 4
+    u[:, :, :] = 21
 
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
     X, Y, Z = numpy.meshgrid(x, y, z)
-    ax.set_xlim(0, 2)
-    ax.set_ylim(0, 2)
-    ax.set_zlim(0, 2)
+    ax.set_xlim(0, 60)
+    ax.set_ylim(0, 24)
+    ax.set_zlim(0, 6)
     ax.set_xlabel('$x$')
     ax.set_ylabel('$y$')
     ax.set_zlabel('$z$')
@@ -50,34 +52,40 @@ def diffuse(nt):
                          (un[1:-1, 2:, 1:-1] - 2 * un[1:-1, 1:-1, 1:-1] + un[1:-1, 0:-2, 1:-1]) +
                          nu * dt / dz ** 2 *
                          (un[1: -1, 1:-1, 2:] - 2 * un[1:-1, 1:-1, 1:-1] + un[1:-1, 1:-1, 0:-2]) -
-                         v * dt / dx * (un[1:-1, 1:-1, 1:-1] - un[0:-2, 1:-1, 1:-1]) -
-                         v * dt / dy * (un[1:-1, 1:-1, 1:-1] - un[1:-1, 0:-2, 1:-1]) -
-                         v * dt / dz * (un[1:-1, 1:-1, 1:-1] - un[1:-1, 1:-1, 0:-2]))
-        u[0, :, :] = 1.3
-        u[-1, :, :] = 1
-        u[:, 0, :] = 2
-        u[:, -1, :] = 1
-        u[:, :, 0] = 1.2
-        u[:, :, -1] = 1
+                         b * (dt / dx * ((un[1:-1, 1:-1, 1:-1] - un[0:-2, 1:-1, 1:-1]) +
+                                         (un[1:-1, 1:-1, 1:-1] - un[2:, 1:-1, 1:-1])) +
+                         dt / dy * ((un[1:-1, 1:-1, 1:-1] - un[1:-1, 0:-2, 1:-1]) +
+                                    (un[1:-1, 1:-1, 1:-1] - un[1:-1, 2:, 1:-1])) +
+                         dt / dz * ((un[1:-1, 1:-1, 1:-1] - un[1:-1, 1:-1, 0:-2]) +
+                                    (un[1:-1, 1:-1, 1:-1] - un[1:-1, 1:-1, 2:]))))
+        u[0, :, :] = 26
+        u[-1, :, :] = 23
+        u[:, 0, :] = 23
+        u[:, -1, :] = 23
+        u[:, :, 0] = 23
+        u[:, :, -1] = 23
 
 
         ax.cla()  # clear it each time + reset
-        mask = u > 1.1
+        mask = u > 0
         ax.scatter(
             X[mask],
             Y[mask],
             Z[mask],
             c=u[mask],
             cmap='plasma',
-            alpha=0.6
+            alpha=0.6,
+            vmin=22,
+            vmax=26,
         )
-        ax.set_xlim(0, 2)
-        ax.set_ylim(0, 2)
-        ax.set_zlim(0, 2)
+        ax.set_xlim(0, 60)
+        ax.set_ylim(0, 24)
+        ax.set_zlim(0, 6)
         ax.set_xlabel('$x$')
         ax.set_ylabel('$y$')
-        pyplot.pause(0.1)
+        ax.set_zlabel('$z$')
+        pyplot.pause(0.5)
 
     pyplot.show()
 
-diffuse(100)
+diffuse(72)
