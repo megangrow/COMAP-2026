@@ -22,25 +22,18 @@ un = numpy.ones((ny, nx))
 # set hat function I.C. : u(.5<=x<=1 && .5<=y<=1 ) is 2
 u[int(.5 / dy):int(1 / dy + 1),int(.5 / dx):int(1 / dx + 1)] = 2
 
-fig = pyplot.figure()
-ax = fig.add_subplot(111, projection='3d')
-X, Y = numpy.meshgrid(x, y)
-surf = ax.plot_surface(X, Y, u, rstride=1, cstride=1, cmap='viridis',
-        linewidth=0, antialiased=False)
-
-ax.set_xlim(0, 2)
-ax.set_ylim(0, 2)
-ax.set_zlim(1, 2.5)
-
-ax.set_xlabel('$x$')
-ax.set_ylabel('$y$')
-
-pyplot.show()
-
-
 ###Run through nt timesteps
 def diffuse(nt):
     u[int(.5 / dy):int(1 / dy + 1), int(.5 / dx):int(1 / dx + 1)] = 2
+
+    fig = pyplot.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    X, Y = numpy.meshgrid(x, y)
+    ax.set_xlim(0, 2)
+    ax.set_ylim(0, 2)
+    ax.set_zlim(1, 2.5)
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$y$')
 
     for n in range(nt + 1):
         un = u.copy()
@@ -54,14 +47,16 @@ def diffuse(nt):
         u[:, 0] = 1
         u[:, -1] = 1
 
-    fig = pyplot.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    surf = ax.plot_surface(X, Y, u[:], rstride=1, cstride=1, cmap=cm.viridis,
-                           linewidth=0, antialiased=True)
-    ax.set_zlim(1, 2.5)
-    ax.set_xlabel('$x$')
-    ax.set_ylabel('$y$')
+        ax.cla()  # clear it each time + reset
+        ax.plot_surface(X, Y, u[:], rstride=1, cstride=1, cmap=cm.viridis,
+                        linewidth=0, antialiased=True)
+        ax.set_xlim(0, 2)
+        ax.set_ylim(0, 2)
+        ax.set_zlim(1, 2.5)
+        ax.set_xlabel('$x$')
+        ax.set_ylabel('$y$')
+        pyplot.pause(0.1)
 
     pyplot.show()
 
-diffuse(10)
+diffuse(100)
