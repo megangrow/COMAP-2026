@@ -19,24 +19,19 @@ dx = (length - 1) / (nx - 1)
 dy = (width - 1) / (ny - 1)
 dz = (height - 1) / (nz - 1)
 sigma = 0.5
-dt = sigma* ((dx**2) / (6*nu)) # ASSUMES dx = dy = dz
+dt = sigma * ((dx**2) / (6*nu)) # ASSUMES dx = dy = dz
 
-x = numpy.linspace(0, 60, nx + 1)
-y = numpy.linspace(0, 24, ny + 1)
-z = numpy.linspace(0, 6, nz + 1)
+x = numpy.linspace(0, nx, nx + 1)
+y = numpy.linspace(0, ny, ny + 1)
+z = numpy.linspace(0, nz, nz + 1)
 
 u = numpy.ones((nx+1, ny+1, nz+1))  # create a 1xn vector of 1's
 un = numpy.ones((nx+1, ny+1, nz+1))
 
+print(dt)
+
 ###Assign initial conditions
 def createwalls(u):
-    y1 = int(0.275 * length)
-    y2 = int(0.725 * length) # 45% of south wall = window
-    y3 = int(0.35 * length)
-    y4 = int(0.65 * length) # 30% of new walls = window
-    x1 = int(0.35 * width)
-    x2 = int(0.65 * width)
-
     south_window = np.zeros_like(u, dtype=bool)
     south_brick = np.zeros_like(u, dtype=bool)
     north_window = np.zeros_like(u, dtype=bool)
@@ -51,10 +46,21 @@ def createwalls(u):
     east_brick[:, -1, :] = True
     west_brick[:, 0, :] = True
 
-    south_window[0, y1:y2, :] = True
-    north_window[-1, y3:y4, :] = True
-    west_window[x1:x2, 0, :] = True
-    east_window[x1:x2, -1, :] = True
+    s = int(0.45 * nx)
+    n = int(0.3 * nx)
+    o = int(0.3 * ny)
+
+    x1 = (nx - s) // 2
+    x2 = nx - x1
+    x3 = (nx - n) // 2
+    x4 = nx - x3
+    y1 = (ny - o) // 2
+    y2 = ny - y1
+
+    south_window[x1:x2, 0, :] = True
+    north_window[x3:x4, -1, :] = True
+    west_window[0, y1:y2, :] = True
+    east_window[-1, y1:y2, :] = True
 
     south_brick[south_window] = False
     west_brick[west_window] = False
@@ -66,7 +72,6 @@ def createwalls(u):
     return brick_mask, window_mask
 brick_mask, window_mask = createwalls(u)
 
-# set hat function I.C. : u(.5<=x<=1 && .5<=y<=1 ) is 2
 u[:, :, :] = 21
 
 if (location == "MIAMI"):
@@ -82,17 +87,20 @@ def diffuse(nt):
 
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
-    X, Y, Z = numpy.meshgrid(x, y, z)
+    X, Y, Z = numpy.meshgrid(x, y, z, indexing='ij')
     ax.set_xlim(0, 60)
     ax.set_ylim(0, 24)
     ax.set_zlim(0, 6)
+    ax.set_box_aspect([10, 4, 1])
     ax.set_xlabel('$x$')
     ax.set_ylabel('$y$')
     ax.set_zlabel('$z$')
 
     avg_room_temps = []
 
-    for n in range(nt + 1):
+    t = np.arange(0, nt, dt)
+
+    for n in t:
         un = u.copy()
         u[1:-1, 1:-1, 1:-1] = (un[1:-1, 1:-1, 1:-1] +
                          nu * dt / dx ** 2 *
@@ -111,46 +119,51 @@ def diffuse(nt):
 
         u[brick_mask] = ambient + (u[brick_mask] - ambient) * (R_brick)
         u[window_mask] = ambient + (u[window_mask] - ambient) * (R_window)
+        u[:, :, 0] = ambient + (u[:, :, 0] - ambient) * (R_brick)
+        u[:, :, -1] = ambient + (u[:, :, -1] - ambient) * (R_brick)
 
-        ac_x1 = int(0.25 * width)
-        ac_x2 = int(0.75 * width)
-        ac_y1 = int((1/6) * length)
-        ac_y2 = int((2/6) * length)
-        ac_y3 = int((4/6) * length)
-        ac_y4 = int((5/6) * length)
-
-        if ambient <= 21:
-            u[:ac_x1, ac_y1:ac_y2, -1] = h_temp
-            u[ac_x2:, ac_y1:ac_y2, -1] = h_temp
-            u[:ac_x1, ac_y3:ac_y4, -1] = h_temp
-            u[ac_x2:, ac_y3:ac_y4, -1] = h_temp
-
-        elif ambient > 21:
-            u[:ac_x1, ac_y1:ac_y2, 0] = c_temp
-            u[ac_x2:, ac_y1:ac_y2, 0] = c_temp
-            u[:ac_x1, ac_y3:ac_y4, 0] = c_temp
-            u[ac_x2:, ac_y3:ac_y4, 0] = c_temp
+        # ac_x1 = int(0.25 * width)
+        # ac_x2 = int(0.75 * width)
+        # ac_y1 = int((1/6) * length)
+        # ac_y2 = int((2/6) * length)
+        # ac_y3 = int((4/6) * length)
+        # ac_y4 = int((5/6) * length)
+        #
+        # if ambient <= 21:
+        #     u[:ac_x1, ac_y1:ac_y2, -1] = h_temp
+        #     u[ac_x2:, ac_y1:ac_y2, -1] = h_temp
+        #     u[:ac_x1, ac_y3:ac_y4, -1] = h_temp
+        #     u[ac_x2:, ac_y3:ac_y4, -1] = h_temp
+        #
+        # elif ambient > 21:
+        #     u[:ac_x1, ac_y1:ac_y2, 0] = c_temp
+        #     u[ac_x2:, ac_y1:ac_y2, 0] = c_temp
+        #     u[:ac_x1, ac_y3:ac_y4, 0] = c_temp
+        #     u[ac_x2:, ac_y3:ac_y4, 0] = c_temp
 
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
-        ax.cla()  # clear it each time + reset
-        ax.scatter(
-            X,
-            Y,
-            Z,
-            c=u,
-            cmap='plasma',
-            alpha=0.6,
-            vmin=-30,
-            vmax=30
-        )
-        ax.set_xlim(0, 60)
-        ax.set_ylim(0, 24)
-        ax.set_zlim(0, 6)
-        ax.set_xlabel('$x$')
-        ax.set_ylabel('$y$')
-        ax.set_zlabel('$z$')
-        pyplot.pause(0.1)
+        if n in t[::500]:
+            ax.cla()  # clear it each time + reset
+            ax.scatter(
+                X,
+                Y,
+                Z,
+                c=u,
+                cmap='plasma',
+                alpha=0.6,
+                vmin=-30,
+                vmax=30
+            )
+            ax.set_xlim(0, 60)
+            ax.set_ylim(0, 24)
+            ax.set_zlim(0, 6)
+            ax.set_xlabel('$x$')
+            ax.set_ylabel('$y$')
+            ax.set_zlabel('$z$')
+            ax.set_box_aspect([10, 4, 1])
+            pyplot.pause(0.1)
+
         print(f"DAY: {n}")
 
     pyplot.show()
@@ -159,5 +172,5 @@ def diffuse(nt):
 
 results = diffuse(365)
 
-pyplot.plot(np.linspace(0, 366, 366), results)
+pyplot.plot(np.linspace(0, 8200, 8200), results)
 pyplot.show()
