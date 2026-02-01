@@ -1,3 +1,4 @@
+# location for main code
 import numpy
 import numpy as np
 import matplotlib
@@ -7,26 +8,25 @@ from mpl_toolkits.mplot3d import Axes3D, axes3d  ##library for 3d projection plo
 ###variable declarations
 location = "ANCHORAGE"
 # location = "MIAMI"
-nx = 10
-ny = 10
-nz = 10
+nx = 60
+ny = 24
+nz = 6
 length = 60
 width = 24
 height = 6
 nu = 1.872 # thermal diffusivity (0.078 for hourly, 1.872 for daily)
-b = 0.00343 # thermal expansion
-dx = length / (nx - 1)
-dy = width / (ny - 1)
-dz = height / (nz - 1)
-sigma = .01
-dt = sigma * dx * dy * dz / nu
+dx = (length - 1) / (nx - 1)
+dy = (width - 1) / (ny - 1)
+dz = (height - 1) / (nz - 1)
+sigma = 0.5
+dt = sigma* ((dx**2) / (6*nu)) # ASSUMES dx = dy = dz
 
-x = numpy.linspace(0, 60, nx)
-y = numpy.linspace(0, 24, ny)
-z = numpy.linspace(0, 6, nz)
+x = numpy.linspace(0, 60, nx + 1)
+y = numpy.linspace(0, 24, ny + 1)
+z = numpy.linspace(0, 6, nz + 1)
 
-u = numpy.ones((nx, ny, nz))  # create a 1xn vector of 1's
-un = numpy.ones((nx, ny, nz))
+u = numpy.ones((nx+1, ny+1, nz+1))  # create a 1xn vector of 1's
+un = numpy.ones((nx+1, ny+1, nz+1))
 
 ###Assign initial conditions
 def createwalls(u):
@@ -82,7 +82,7 @@ def diffuse(nt):
 
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
-    X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+    X, Y, Z = numpy.meshgrid(x, y, z)
     ax.set_xlim(0, 60)
     ax.set_ylim(0, 24)
     ax.set_zlim(0, 6)
@@ -100,13 +100,7 @@ def diffuse(nt):
                          nu * dt / dy ** 2 *
                          (un[1:-1, 2:, 1:-1] - 2 * un[1:-1, 1:-1, 1:-1] + un[1:-1, 0:-2, 1:-1]) +
                          nu * dt / dz ** 2 *
-                         (un[1: -1, 1:-1, 2:] - 2 * un[1:-1, 1:-1, 1:-1] + un[1:-1, 1:-1, 0:-2]) -
-                         b * (dt / dx * ((un[1:-1, 1:-1, 1:-1] - un[0:-2, 1:-1, 1:-1]) +
-                                         (un[1:-1, 1:-1, 1:-1] - un[2:, 1:-1, 1:-1])) +
-                         dt / dy * ((un[1:-1, 1:-1, 1:-1] - un[1:-1, 0:-2, 1:-1]) +
-                                    (un[1:-1, 1:-1, 1:-1] - un[1:-1, 2:, 1:-1])) +
-                         dt / dz * ((un[1:-1, 1:-1, 1:-1] - un[1:-1, 1:-1, 0:-2]) +
-                                    (un[1:-1, 1:-1, 1:-1] - un[1:-1, 1:-1, 2:]))))
+                         (un[1: -1, 1:-1, 2:] - 2 * un[1:-1, 1:-1, 1:-1] + un[1:-1, 1:-1, 0:-2]))
 
         ambient = T(n)
         h_temp = 24
@@ -118,34 +112,33 @@ def diffuse(nt):
         u[brick_mask] = ambient + (u[brick_mask] - ambient) * (R_brick)
         u[window_mask] = ambient + (u[window_mask] - ambient) * (R_window)
 
-        bmask_x1 = (X >= 0) & (X <= 30)
-        bmask_x2 = (X >= 30) & (X <= 60)
-        bmask_y1 = (Y >= 0) & (Y <= 6)
-        bmask_y2 = (Y >= 18) & (Y <= 24)
-        bmask_z1 = (Z == 0)
-        bmask_z2 = (Z == 6)
+        ac_x1 = int(0.25 * width)
+        ac_x2 = int(0.75 * width)
+        ac_y1 = int((1/6) * length)
+        ac_y2 = int((2/6) * length)
+        ac_y3 = int((4/6) * length)
+        ac_y4 = int((5/6) * length)
 
-        # if ambient <= 22:
-        #     u[bmask_x1 & bmask_y1 & bmask_z1] = h_temp
-        #     u[bmask_x2 & bmask_y1 & bmask_z1] = h_temp
-        #     u[bmask_x1 & bmask_y2 & bmask_z1] = h_temp
-        #     u[bmask_x2 & bmask_y2 & bmask_z1] = h_temp
-        #
-        # elif ambient > 22:
-        #     u[bmask_x1 & bmask_y1 & bmask_z2] = c_temp
-        #     u[bmask_x2 & bmask_y1 & bmask_z2] = c_temp
-        #     u[bmask_x1 & bmask_y2 & bmask_z2] = c_temp
-        #     u[bmask_x2 & bmask_y2 & bmask_z2] = c_temp
+        if ambient <= 21:
+            u[:ac_x1, ac_y1:ac_y2, -1] = h_temp
+            u[ac_x2:, ac_y1:ac_y2, -1] = h_temp
+            u[:ac_x1, ac_y3:ac_y4, -1] = h_temp
+            u[ac_x2:, ac_y3:ac_y4, -1] = h_temp
+
+        elif ambient > 21:
+            u[:ac_x1, ac_y1:ac_y2, 0] = c_temp
+            u[ac_x2:, ac_y1:ac_y2, 0] = c_temp
+            u[:ac_x1, ac_y3:ac_y4, 0] = c_temp
+            u[ac_x2:, ac_y3:ac_y4, 0] = c_temp
 
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
         ax.cla()  # clear it each time + reset
-        mask = u > -30
         ax.scatter(
-            X[mask],
-            Y[mask],
-            Z[mask],
-            c=u[mask],
+            X,
+            Y,
+            Z,
+            c=u,
             cmap='plasma',
             alpha=0.6,
             vmin=-30,
