@@ -9,7 +9,7 @@ from pygments.lexers import ambient
 
 ###variable declarations
 location = "ANCHORAGE"
-location = "MIAMI"
+# location = "MIAMI"
 nx = 60
 ny = 24
 nz = 6
@@ -162,15 +162,26 @@ def diffuse(nt):
         u[:, :, -1] = u[:, :, 1] + p31 * dz
         u[:, :, -1] = u[:, :, -2] + p32 * dz
 
-        r11 = ((ambient + 5*((ths - thd) / (ths - thw))) - u[1, 8:16, :])/R_window
-        r12 = ((ambient + 5*((ths - thd) / (ths - thw))) - u[-2, 8:16, :]) / R_window
-        r21 = ((ambient + 0*((ths - thd) / (ths - thw))) - u[21:39, 1, :]) / R_window
-        r22 = ((ambient + 10*((ths - thd) / (ths - thw))) - u[16:44, -2, :]) / R_window
+        on_or_off = True
+        if on_or_off:
+            shading = (ths - thd) / (ths - thw)
+        else:
+            shading = 1
+
+        r11 = ((ambient + 5*shading) - u[1, 8:16, :])/R_window
+        r12 = ((ambient + 5*shading) - u[-2, 8:16, :]) / R_window
+        r21 = ((ambient + 0*shading) - u[21:39, 1, :]) / R_window
+        r22 = ((ambient + 10*shading) - u[16:44, -2, :]) / R_window
 
         u[0, 8:16, :] = u[1, 8:16, :] + r11 * dz
         u[-1, 8:16, :] = u[-2, 8:16, :] + r12 * dz
         u[21:39, 0, :] = u[21:39, 1, :] + r21 * dz
         u[16:44, -1, :] = u[16:44, -2, :] + r22 * dz
+
+        u[1:3, 8:16, 1:3] = 21
+        u[-4:-2, 8:16, 1:3] = 21
+        u[21:39, 1:3, 1:3] = 21
+        u[16:44, -4:-2, 1:3] = 21
 
         # Tg = (ambient + 10 * ((thd - thw / ths - thw))) + (
         #             (u[window_mask] - (ambient + 10 * (thd - thw / ths - thw))) * (R_window))
