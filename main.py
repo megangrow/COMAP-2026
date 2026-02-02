@@ -15,10 +15,11 @@ length = 60
 width = 24
 height = 6
 nu = 1.872 # thermal diffusivity (0.078 for hourly, 1.872 for daily)
+k_air = 30 # heat transfer coefficient of air
 dx = (length - 1) / (nx - 1)
 dy = (width - 1) / (ny - 1)
 dz = (height - 1) / (nz - 1)
-sigma = 0.5
+sigma = 0.05
 dt = sigma * ((dx**2) / (6*nu)) # ASSUMES dx = dy = dz
 
 x = numpy.linspace(0, nx, nx + 1)
@@ -102,14 +103,13 @@ def diffuse(nt):
 
     for n in t:
         un = u.copy()
-        u[1:-1, 1:-1, 1:-1] = (un[1:-1, 1:-1, 1:-1] +
-                         nu * dt / dx ** 2 *
+        u[1:-1, 1:-1, 1:-1] = (un[1:-1, 1:-1, 1:-1] + dt * (
+                         nu / dx ** 2 *
                          (un[2:, 1:-1, 1:-1] - 2 * un[1:-1, 1:-1, 1:-1] + un[0:-2, 1:-1, 1:-1]) +
-                         nu * dt / dy ** 2 *
+                         nu / dy ** 2 *
                          (un[1:-1, 2:, 1:-1] - 2 * un[1:-1, 1:-1, 1:-1] + un[1:-1, 0:-2, 1:-1]) +
-                         nu * dt / dz ** 2 *
-                         (un[1: -1, 1:-1, 2:] - 2 * un[1:-1, 1:-1, 1:-1] + un[1:-1, 1:-1, 0:-2]))
-
+                         nu / dz ** 2 *
+                         (un[1: -1, 1:-1, 2:] - 2 * un[1:-1, 1:-1, 1:-1] + un[1:-1, 1:-1, 0:-2])))
         ambient = T(n)
         h_temp = 24
         c_temp = 20
@@ -117,33 +117,17 @@ def diffuse(nt):
         R_brick = 0.872792
         R_window = 0.340659
 
-        u[brick_mask] = ambient + (u[brick_mask] - ambient) * (R_brick)
-        u[window_mask] = ambient + (u[window_mask] - ambient) * (R_window)
+        u[brick_mask] = (ambient+10) + (u[brick_mask] - (ambient+10)) * (R_brick)
+        u[window_mask] = (ambient+10) + (u[window_mask] - (ambient+10)) * (R_window)
+        u[:, :, -1] = (ambient+10) + (u[:, :, -1] - (ambient+10)) * (R_brick)
         u[:, :, 0] = ambient + (u[:, :, 0] - ambient) * (R_brick)
-        u[:, :, -1] = ambient + (u[:, :, -1] - ambient) * (R_brick)
 
-        # ac_x1 = int(0.25 * width)
-        # ac_x2 = int(0.75 * width)
-        # ac_y1 = int((1/6) * length)
-        # ac_y2 = int((2/6) * length)
-        # ac_y3 = int((4/6) * length)
-        # ac_y4 = int((5/6) * length)
-        #
-        # if ambient <= 21:
-        #     u[:ac_x1, ac_y1:ac_y2, -1] = h_temp
-        #     u[ac_x2:, ac_y1:ac_y2, -1] = h_temp
-        #     u[:ac_x1, ac_y3:ac_y4, -1] = h_temp
-        #     u[ac_x2:, ac_y3:ac_y4, -1] = h_temp
-        #
-        # elif ambient > 21:
-        #     u[:ac_x1, ac_y1:ac_y2, 0] = c_temp
-        #     u[ac_x2:, ac_y1:ac_y2, 0] = c_temp
-        #     u[:ac_x1, ac_y3:ac_y4, 0] = c_temp
-        #     u[ac_x2:, ac_y3:ac_y4, 0] = c_temp
+        q = k_air * (18 - u[::5, ::3, -2])
+        u[::5, ::3, -1] = u[::5, ::3, -2] + q * dz
 
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
-        if n in t[::500]:
+        if n in t[::2000]:
             ax.cla()  # clear it each time + reset
             ax.scatter(
                 X,
@@ -151,7 +135,7 @@ def diffuse(nt):
                 Z,
                 c=u,
                 cmap='plasma',
-                alpha=0.6,
+                alpha=0.1,
                 vmin=-30,
                 vmax=30
             )
@@ -168,9 +152,9 @@ def diffuse(nt):
 
     pyplot.show()
 
-    return(avg_room_temps)
+    return(t, avg_room_temps)
 
-results = diffuse(365)
+t, results = diffuse(365)
 
-pyplot.plot(np.linspace(0, 8200, 8200), results)
+pyplot.plot(t, results)
 pyplot.show()
