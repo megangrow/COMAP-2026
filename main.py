@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot, cm
 from mpl_toolkits.mplot3d import Axes3D, axes3d  ##library for 3d projection plots
+import pvlib
+from pygments.lexers import ambient
 
 ###variable declarations
 location = "ANCHORAGE"
@@ -78,9 +80,23 @@ u[:, :, :] = 21
 if (location == "MIAMI"):
     T = lambda t: 4.9188111757142 * np.sin( 0.017200792322545 * t - 1193.71990384336) +\
             0.582462690124397 * np.cos( 760.266156033683 * t + 2095.71540499492) + 24.5960040916041
-else:
+    ths = 87.69
+    thw = 40.83
+    ###Compute Angle of the SUN
+    def sun_angle(d):
+        return ((np.pi / 2) - ((25.774 * np.pi) / 180) + pvlib.solarposition.declination_cooper69(d)) * (180 / np.pi)
+
+elif (location == "ANCHORAGE"):
     T = lambda t: 0.69585135778619 * np.sin(0.00137029999867194 * t - 2432.77084285537) +\
             12.2251580183288 * np.cos(0.017201860290628 * t + 36557989.8870071) + 3.13224850133946
+    ths = 52.21
+    thw = 5.35
+    ###Compute Angle of the SUN
+    def sun_angle(d):
+        return ((np.pi / 2) - ((61.21806 * np.pi) / 180) + pvlib.solarposition.declination_cooper69(d)) * (180 / np.pi)
+
+else:
+    raise RuntimeError("\n Please check location and variables!!! \n")
 
 ###Run through nt timesteps
 def diffuse(nt):
@@ -117,13 +133,47 @@ def diffuse(nt):
         R_brick = 0.872792
         R_window = 0.340659
 
-        u[brick_mask] = (ambient+10) + (u[brick_mask] - (ambient+10)) * (R_brick)
-        u[window_mask] = (ambient+10) + (u[window_mask] - (ambient+10)) * (R_window)
+        u[brick_mask] = (ambient+10) + (u[brick_mask] - (ambient+10)) * (R_brick)\
+
+        R_as = 0.36
+        R_v = 0.003
+        if (location == "ANCHORAGE"):
+            thd = sun_angle(n + 59.25)
+        elif (location == "MIAMI"):
+            thd = sun_angle(n + 48)
+        else:
+            raise RuntimeError("Not valid location")
+
+        Tg = (ambient + 10*((thd-thw/ths-thw))) + ((u[window_mask] - (ambient + 10*(thd - thw/ths - thw)))*(1-(2*R_as)/2*R_as+R_v))
+
+        u[window_mask] = Tg + (u[window_mask] - Tg) * (R_window)
         u[:, :, -1] = (ambient+10) + (u[:, :, -1] - (ambient+10)) * (R_brick)
         u[:, :, 0] = ambient + (u[:, :, 0] - ambient) * (R_brick)
 
-        q = k_air * (18 - u[::5, ::3, -2])
-        u[::5, ::3, -1] = u[::5, ::3, -2] + q * dz
+        if (ambient < 20):
+            vent_temp = 25
+        else:
+            vent_temp = 15
+
+        vent_temp = 21
+        u[10:12, 4:20, -1] = vent_temp #u[10:12, 4:20, -2] + k_air * (vent_temp - u[10:12, 4:20, -2]) * dz
+        u[20:22, 4:20, -1] = vent_temp #u[20:22, 4:20, -2] + k_air * (vent_temp - u[20:22, 4:20, -2]) * dz
+        u[30:32, 4:20, -1] = vent_temp #u[30:32, 4:20, -2] + k_air * (vent_temp - u[30:32, 4:20, -2]) * dz
+        u[40:42, 4:20, -1] = vent_temp #u[40:42, 4:20, -2] + k_air * (vent_temp - u[40:42, 4:20, -2]) * dz
+        u[50:52, 4:20, -1] = vent_temp #u[50:52, 4:20, -2] + k_air * (vent_temp - u[50:52, 4:20, -2]) * dz
+
+
+        u[10:12, 4:20, -3] = vent_temp #u[10:12, 4:20, -4] + k_air * (vent_temp - u[10:12, 4:20, -4]) * dz
+        u[20:22, 4:20, -3] = vent_temp #u[20:22, 4:20, -4] + k_air * (vent_temp - u[20:22, 4:20, -4]) * dz
+        u[30:32, 4:20, -3] = vent_temp #u[30:32, 4:20, -4] + k_air * (vent_temp - u[30:32, 4:20, -4]) * dz
+        u[40:42, 4:20, -3] = vent_temp #u[40:42, 4:20, -4] + k_air * (vent_temp - u[40:42, 4:20, -4]) * dz
+        u[50:52, 4:20, -3] = vent_temp #u[50:52, 4:20, -4] + k_air * (vent_temp - u[50:52, 4:20, -4]) * dz
+
+        u[10:12, 4:20, -6] = vent_temp  # u[10:12, 4:20, -2] + k_air * (vent_temp - u[10:12, 4:20, -2]) * dz
+        u[20:22, 4:20, -6] = vent_temp  # u[20:22, 4:20, -2] + k_air * (vent_temp - u[20:22, 4:20, -2]) * dz
+        u[30:32, 4:20, -6] = vent_temp  # u[30:32, 4:20, -2] + k_air * (vent_temp - u[30:32, 4:20, -2]) * dz
+        u[40:42, 4:20, -6] = vent_temp  # u[40:42, 4:20, -2] + k_air * (vent_temp - u[40:42, 4:20, -2]) * dz
+        u[50:52, 4:20, -6] = vent_temp
 
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
