@@ -9,7 +9,7 @@ from pygments.lexers import ambient
 
 ###variable declarations
 location = "ANCHORAGE"
-# location = "MIAMI"
+location = "MIAMI"
 nx = 60
 ny = 24
 nz = 6
@@ -17,7 +17,7 @@ length = 60
 width = 24
 height = 6
 nu = 1.872 # thermal diffusivity (0.078 for hourly, 1.872 for daily)
-k_air = 30 # heat transfer coefficient of air
+k_air = 100 # heat transfer coefficient of air
 dx = (length - 1) / (nx - 1)
 dy = (width - 1) / (ny - 1)
 dz = (height - 1) / (nz - 1)
@@ -80,20 +80,24 @@ u[:, :, :] = 21
 if (location == "MIAMI"):
     T = lambda t: 4.9188111757142 * np.sin( 0.017200792322545 * t - 1193.71990384336) +\
             0.582462690124397 * np.cos( 760.266156033683 * t + 2095.71540499492) + 24.5960040916041
-    ths = 87.69
-    thw = 40.83
+
     ###Compute Angle of the SUN
     def sun_angle(d):
         return ((np.pi / 2) - ((25.774 * np.pi) / 180) + pvlib.solarposition.declination_cooper69(d)) * (180 / np.pi)
 
+    ths = sun_angle(172)
+    thw = sun_angle(354)
+
 elif (location == "ANCHORAGE"):
     T = lambda t: 0.69585135778619 * np.sin(0.00137029999867194 * t - 2432.77084285537) +\
             12.2251580183288 * np.cos(0.017201860290628 * t + 36557989.8870071) + 3.13224850133946
-    ths = 52.21
-    thw = 5.35
+
     ###Compute Angle of the SUN
     def sun_angle(d):
         return ((np.pi / 2) - ((61.21806 * np.pi) / 180) + pvlib.solarposition.declination_cooper69(d)) * (180 / np.pi)
+
+    ths = sun_angle(172)
+    thw = sun_angle(354)
 
 else:
     raise RuntimeError("\n Please check location and variables!!! \n")
@@ -130,10 +134,10 @@ def diffuse(nt):
         h_temp = 24
         c_temp = 20
 
-        R_brick = 0.872792
-        R_window = 0.340659
+        R_brick = 2.45
+        R_window = 0.366
 
-        u[brick_mask] = (ambient+10) + (u[brick_mask] - (ambient+10)) * (R_brick)\
+        u[brick_mask] = (ambient+10) + (u[brick_mask] - (ambient+10)) * (R_brick)
 
         R_as = 0.36
         R_v = 0.003
@@ -144,36 +148,64 @@ def diffuse(nt):
         else:
             raise RuntimeError("Not valid location")
 
-        Tg = (ambient + 10*((thd-thw/ths-thw))) + ((u[window_mask] - (ambient + 10*(thd - thw/ths - thw)))*(1-(2*R_as)/2*R_as+R_v))
+        p11 = (ambient+5-u[1, :, :])/R_brick
+        p12 = (ambient+5-u[-2, :, :])/R_brick
+        p21 = (ambient+0-u[:, 1, :])/R_brick
+        p22 = (ambient+10-u[:, -2, :])/R_brick
+        p31 = (ambient+0-u[:, :, 1])/(R_brick+1)
+        p32 = (ambient+10-u[:, :, -2])/R_brick
 
-        u[window_mask] = Tg + (u[window_mask] - Tg) * (R_window)
-        u[:, :, -1] = (ambient+10) + (u[:, :, -1] - (ambient+10)) * (R_brick)
-        u[:, :, 0] = ambient + (u[:, :, 0] - ambient) * (R_brick)
+        u[0, :, :] = u[1, :, :] + p11 * dz
+        u[-1, :, :] = u[-2, :, :] + p12 * dz
+        u[:, 0, :] = u[:, 1, :] + p21 * dz
+        u[:, -1, :] = u[:, -2, :] + p22 * dz
+        u[:, :, -1] = u[:, :, 1] + p31 * dz
+        u[:, :, -1] = u[:, :, -2] + p32 * dz
+
+        r11 = ((ambient + 5*((ths - thd) / (ths - thw))) - u[1, 8:16, :])/R_window
+        r12 = ((ambient + 5*((ths - thd) / (ths - thw))) - u[-2, 8:16, :]) / R_window
+        r21 = ((ambient + 0*((ths - thd) / (ths - thw))) - u[21:39, 1, :]) / R_window
+        r22 = ((ambient + 10*((ths - thd) / (ths - thw))) - u[16:44, -2, :]) / R_window
+
+        u[0, 8:16, :] = u[1, 8:16, :] + r11 * dz
+        u[-1, 8:16, :] = u[-2, 8:16, :] + r12 * dz
+        u[21:39, 0, :] = u[21:39, 1, :] + r21 * dz
+        u[16:44, -1, :] = u[16:44, -2, :] + r22 * dz
+
+        # Tg = (ambient + 10 * ((thd - thw / ths - thw))) + (
+        #             (u[window_mask] - (ambient + 10 * (thd - thw / ths - thw))) * (R_window))
+        #
+        # u[window_mask] = Tg + (u[window_mask] - Tg) * (R_window)
 
         if (ambient < 20):
-            vent_temp = 25
+            vent_temp = 30
         else:
             vent_temp = 15
 
         vent_temp = 21
-        u[10:12, 4:20, -1] = vent_temp #u[10:12, 4:20, -2] + k_air * (vent_temp - u[10:12, 4:20, -2]) * dz
-        u[20:22, 4:20, -1] = vent_temp #u[20:22, 4:20, -2] + k_air * (vent_temp - u[20:22, 4:20, -2]) * dz
-        u[30:32, 4:20, -1] = vent_temp #u[30:32, 4:20, -2] + k_air * (vent_temp - u[30:32, 4:20, -2]) * dz
-        u[40:42, 4:20, -1] = vent_temp #u[40:42, 4:20, -2] + k_air * (vent_temp - u[40:42, 4:20, -2]) * dz
-        u[50:52, 4:20, -1] = vent_temp #u[50:52, 4:20, -2] + k_air * (vent_temp - u[50:52, 4:20, -2]) * dz
+        u[10:12, 4:20, -1] = u[10:12, 4:20, -2] + k_air * (vent_temp - u[10:12, 4:20, -2]) * dz
+        u[20:22, 4:20, -1] = u[20:22, 4:20, -2] + k_air * (vent_temp - u[20:22, 4:20, -2]) * dz
+        u[30:32, 4:20, -1] = u[30:32, 4:20, -2] + k_air * (vent_temp - u[30:32, 4:20, -2]) * dz
+        u[40:42, 4:20, -1] = u[40:42, 4:20, -2] + k_air * (vent_temp - u[40:42, 4:20, -2]) * dz
+        u[50:52, 4:20, -1] = u[50:52, 4:20, -2] + k_air * (vent_temp - u[50:52, 4:20, -2]) * dz
+        # u[10:12, 4:20, -2] = 21
+        # u[20:22, 4:20, -2] = 21
+        # u[30:32, 4:20, -2] = 21
+        # u[40:42, 4:20, -2] = 21
+        # u[50:52, 4:20, -2] = 21
 
 
-        u[10:12, 4:20, -3] = vent_temp #u[10:12, 4:20, -4] + k_air * (vent_temp - u[10:12, 4:20, -4]) * dz
-        u[20:22, 4:20, -3] = vent_temp #u[20:22, 4:20, -4] + k_air * (vent_temp - u[20:22, 4:20, -4]) * dz
-        u[30:32, 4:20, -3] = vent_temp #u[30:32, 4:20, -4] + k_air * (vent_temp - u[30:32, 4:20, -4]) * dz
-        u[40:42, 4:20, -3] = vent_temp #u[40:42, 4:20, -4] + k_air * (vent_temp - u[40:42, 4:20, -4]) * dz
-        u[50:52, 4:20, -3] = vent_temp #u[50:52, 4:20, -4] + k_air * (vent_temp - u[50:52, 4:20, -4]) * dz
-
-        u[10:12, 4:20, -6] = vent_temp  # u[10:12, 4:20, -2] + k_air * (vent_temp - u[10:12, 4:20, -2]) * dz
-        u[20:22, 4:20, -6] = vent_temp  # u[20:22, 4:20, -2] + k_air * (vent_temp - u[20:22, 4:20, -2]) * dz
-        u[30:32, 4:20, -6] = vent_temp  # u[30:32, 4:20, -2] + k_air * (vent_temp - u[30:32, 4:20, -2]) * dz
-        u[40:42, 4:20, -6] = vent_temp  # u[40:42, 4:20, -2] + k_air * (vent_temp - u[40:42, 4:20, -2]) * dz
-        u[50:52, 4:20, -6] = vent_temp
+        # u[10:12, 4:20, -3] = vent_temp #u[10:12, 4:20, -4] + k_air * (vent_temp - u[10:12, 4:20, -4]) * dz
+        # u[20:22, 4:20, -3] = vent_temp #u[20:22, 4:20, -4] + k_air * (vent_temp - u[20:22, 4:20, -4]) * dz
+        # u[30:32, 4:20, -3] = vent_temp #u[30:32, 4:20, -4] + k_air * (vent_temp - u[30:32, 4:20, -4]) * dz
+        # u[40:42, 4:20, -3] = vent_temp #u[40:42, 4:20, -4] + k_air * (vent_temp - u[40:42, 4:20, -4]) * dz
+        # u[50:52, 4:20, -3] = vent_temp #u[50:52, 4:20, -4] + k_air * (vent_temp - u[50:52, 4:20, -4]) * dz
+        #
+        # u[10:12, 4:20, -6] = vent_temp  # u[10:12, 4:20, -2] + k_air * (vent_temp - u[10:12, 4:20, -2]) * dz
+        # u[20:22, 4:20, -6] = vent_temp  # u[20:22, 4:20, -2] + k_air * (vent_temp - u[20:22, 4:20, -2]) * dz
+        # u[30:32, 4:20, -6] = vent_temp  # u[30:32, 4:20, -2] + k_air * (vent_temp - u[30:32, 4:20, -2]) * dz
+        # u[40:42, 4:20, -6] = vent_temp  # u[40:42, 4:20, -2] + k_air * (vent_temp - u[40:42, 4:20, -2]) * dz
+        # u[50:52, 4:20, -6] = vent_temp
 
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
