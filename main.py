@@ -179,10 +179,10 @@ def diffuse(nt):
         u[16:44, -1, :] = u[16:44, -2, :] + r22 * dz
 
         # CONCRETE MASS
-        u[1:3, 8:16, 1:3] = 21
-        u[-4:-2, 8:16, 1:3] = 21
-        u[21:39, 1:3, 1:3] = 21
-        u[16:44, -4:-2, 1:3] = 21
+        # u[1:3, 8:16, 1:3] = 21
+        # u[-4:-2, 8:16, 1:3] = 21
+        # u[21:39, 1:3, 1:3] = 21
+        # u[16:44, -4:-2, 1:3] = 21
 
         # Tg = (ambient + 10 * ((thd - thw / ths - thw))) + (
         #             (u[window_mask] - (ambient + 10 * (thd - thw / ths - thw))) * (R_window))
@@ -222,7 +222,7 @@ def diffuse(nt):
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
         if location == "MIAMI":
-            if int(n) == 176 or int(n) == -2 or int(n) == -1 :
+            if int(n) == 90 or int(n) == -2 or int(n) == -1 :
                 ax.cla()  # clear it each time + reset
                 sc = ax.scatter(
                     X,
