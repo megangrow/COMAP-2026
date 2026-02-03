@@ -9,7 +9,7 @@ from pygments.lexers import ambient
 
 ###variable declarations
 location = "ANCHORAGE"
-# location = "MIAMI"
+location = "MIAMI"
 nx = 60
 ny = 24
 nz = 6
@@ -106,7 +106,7 @@ else:
 def diffuse(nt):
     u[:, :, :] = 21
 
-    fig = pyplot.figure()
+    fig = pyplot.figure(figsize=(10,8))
     ax = fig.add_subplot(111, projection='3d')
     X, Y, Z = numpy.meshgrid(x, y, z, indexing='ij')
     ax.set_xlim(0, 60)
@@ -178,10 +178,11 @@ def diffuse(nt):
         u[21:39, 0, :] = u[21:39, 1, :] + r21 * dz
         u[16:44, -1, :] = u[16:44, -2, :] + r22 * dz
 
-        u[1:3, 8:16, 1:3] = 21
-        u[-4:-2, 8:16, 1:3] = 21
-        u[21:39, 1:3, 1:3] = 21
-        u[16:44, -4:-2, 1:3] = 21
+        # CONCRETE MASS
+        # u[1:3, 8:16, 1:3] = 21
+        # u[-4:-2, 8:16, 1:3] = 21
+        # u[21:39, 1:3, 1:3] = 21
+        # u[16:44, -4:-2, 1:3] = 21
 
         # Tg = (ambient + 10 * ((thd - thw / ths - thw))) + (
         #             (u[window_mask] - (ambient + 10 * (thd - thw / ths - thw))) * (R_window))
@@ -220,34 +221,72 @@ def diffuse(nt):
 
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
-        if n in t[::2000]:
-            ax.cla()  # clear it each time + reset
-            ax.scatter(
-                X,
-                Y,
-                Z,
-                c=u,
-                cmap='plasma',
-                alpha=0.1,
-                vmin=-30,
-                vmax=30
-            )
-            ax.set_xlim(0, 60)
-            ax.set_ylim(0, 24)
-            ax.set_zlim(0, 6)
-            ax.set_xlabel('$x$')
-            ax.set_ylabel('$y$')
-            ax.set_zlabel('$z$')
-            ax.set_box_aspect([10, 4, 1])
-            pyplot.pause(0.1)
+        if location == "MIAMI":
+            if int(n) == 260 or int(n) == -2 or int(n) == -1 :
+                ax.cla()  # clear it each time + reset
+                ax.scatter(
+                    X,
+                    Y,
+                    Z,
+                    c=u,
+                    cmap='plasma',
+                    alpha=0.1,
+                    vmin=-30,
+                    vmax=30
+                )
+                ax.set_xlim(0, 60)
+                ax.set_ylim(0, 24)
+                ax.set_zlim(0, 6)
+                ax.set_zticks([3, 6])
+                ax.set_xlabel('$x$', labelpad=20)
+                ax.set_ylabel('$y$')
+                ax.set_zlabel('$z$')
+                ax.set_box_aspect([10, 4, 1])
+                ax.view_init(elev=30, azim=120)
+                # ax.set_title(f"Temperature Heat Map for Day {int(n)} in {location}")
+                fig.text(0.5, 0.80, f"Temperature Heat Map for Day {int(n)} in {location}", ha='center', va='top')
+                pyplot.pause(0.1)
+
+        else:
+            if int(n) == -5 or int(n) == -3 or int(n) == -1 :
+                ax.cla()  # clear it each time + reset
+                ax.scatter(
+                    X,
+                    Y,
+                    Z,
+                    c=u,
+                    cmap='plasma',
+                    alpha=0.1,
+                    vmin=-30,
+                    vmax=30
+                )
+                ax.set_xlim(0, 60)
+                ax.set_ylim(0, 24)
+                ax.set_zlim(0, 6)
+                ax.set_zticks([3, 6])
+                ax.set_xlabel('$x$', labelpad=20)
+                ax.set_ylabel('$y$')
+                ax.set_zlabel('$z$')
+                ax.set_box_aspect([10, 4, 1])
+                ax.view_init(elev=30, azim=120)
+                # ax.set_title(f"Temperature Heat Map for Day {int(n)} in {location}")
+                fig.text(0.5, 0.80, f"Temperature Heat Map for Day {int(n)} in {location}", ha='center', va='top')
+                pyplot.pause(0.1)
 
         print(f"DAY: {n}")
 
     pyplot.show()
 
-    return(t, avg_room_temps)
+    return(X, Y, Z, t, avg_room_temps)
 
-t, results = diffuse(365)
+X, Y, Z, t, results = diffuse(365)
 
-pyplot.plot(t, results)
+fig = pyplot.figure(figsize=(6,6))
+ax = fig.add_subplot(111)
+ax.plot(t, results)
+ax.set_xlabel('Time (days)')
+ax.set_ylabel('Temp (C)')
+ax.set_title(f'{location} w/ Solar Shading')
+pyplot.tight_layout()
+pyplot.grid()
 pyplot.show()
