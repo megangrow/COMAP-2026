@@ -8,8 +8,8 @@ import pvlib
 from pygments.lexers import ambient
 
 ###variable declarations
-location = "ANCHORAGE"
-# location = "MIAMI"
+#location = "ANCHORAGE"
+location = "MIAMI"
 nx = 60
 ny = 24
 nz = 6
@@ -222,9 +222,9 @@ def diffuse(nt):
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
         if location == "MIAMI":
-            if int(n) == 10 or int(n) == -2 or int(n) == -1 :
+            if int(n) == 176 or int(n) == -2 or int(n) == -1 :
                 ax.cla()  # clear it each time + reset
-                ax.scatter(
+                sc = ax.scatter(
                     X,
                     Y,
                     Z,
@@ -251,7 +251,7 @@ def diffuse(nt):
         else:
             if int(n) == 255 or int(n) == -3 or int(n) == -1 :
                 ax.cla()  # clear it each time + reset
-                ax.scatter(
+                sc = ax.scatter(
                     X,
                     Y,
                     Z,
