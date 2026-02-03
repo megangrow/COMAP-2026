@@ -222,7 +222,7 @@ def diffuse(nt):
         avg_room_temps.append(np.average(u[1:-2, 1:-2, 1:-2]))
 
         if location == "MIAMI":
-            if int(n) == 260 or int(n) == -2 or int(n) == -1 :
+            if int(n) == 10 or int(n) == -2 or int(n) == -1 :
                 ax.cla()  # clear it each time + reset
                 ax.scatter(
                     X,
@@ -238,13 +238,14 @@ def diffuse(nt):
                 ax.set_ylim(0, 24)
                 ax.set_zlim(0, 6)
                 ax.set_zticks([3, 6])
-                ax.set_xlabel('$x$', labelpad=20)
-                ax.set_ylabel('$y$')
-                ax.set_zlabel('$z$')
+                ax.set_xlabel('$x$', labelpad=50, fontsize=35)
+                ax.set_ylabel('$y$', labelpad=15, fontsize=35)
+                ax.set_zlabel('$z$', labelpad=10, fontsize=35)
+                ax.tick_params(axis='both', which='major', labelsize=17)
                 ax.set_box_aspect([10, 4, 1])
                 ax.view_init(elev=30, azim=120)
                 # ax.set_title(f"Temperature Heat Map for Day {int(n)} in {location}")
-                fig.text(0.5, 0.80, f"Temperature Heat Map for Day {int(n)} in {location}", ha='center', va='top')
+                fig.text(0.5, 0.80, f"Temperature Heat Map for Day {int(n)} in {location}", ha='center', va='top', fontsize=20)
                 pyplot.pause(0.1)
 
         else:
@@ -264,13 +265,13 @@ def diffuse(nt):
                 ax.set_ylim(0, 24)
                 ax.set_zlim(0, 6)
                 ax.set_zticks([3, 6])
-                ax.set_xlabel('$x$', labelpad=20)
-                ax.set_ylabel('$y$')
-                ax.set_zlabel('$z$')
+                ax.set_xlabel('$x$', labelpad=20, fontsize=25)
+                ax.set_ylabel('$y$', labelpad=20, fontsize=25)
+                ax.set_zlabel('$z$', labelpad=20, fontsize=25)
                 ax.set_box_aspect([10, 4, 1])
                 ax.view_init(elev=30, azim=120)
                 # ax.set_title(f"Temperature Heat Map for Day {int(n)} in {location}")
-                fig.text(0.5, 0.80, f"Temperature Heat Map for Day {int(n)} in {location}", ha='center', va='top')
+                fig.text(0.5, 0.80, f"Temperature Heat Map for Day {int(n)} in {location}", ha='center', va='top', fontsize=20)
                 pyplot.pause(0.1)
 
         print(f"DAY: {n}")
