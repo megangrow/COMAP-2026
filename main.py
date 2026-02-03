@@ -9,7 +9,7 @@ from pygments.lexers import ambient
 
 ###variable declarations
 location = "ANCHORAGE"
-location = "MIAMI"
+# location = "MIAMI"
 nx = 60
 ny = 24
 nz = 6
@@ -179,10 +179,10 @@ def diffuse(nt):
         u[16:44, -1, :] = u[16:44, -2, :] + r22 * dz
 
         # CONCRETE MASS
-        # u[1:3, 8:16, 1:3] = 21
-        # u[-4:-2, 8:16, 1:3] = 21
-        # u[21:39, 1:3, 1:3] = 21
-        # u[16:44, -4:-2, 1:3] = 21
+        u[1:3, 8:16, 1:3] = 21
+        u[-4:-2, 8:16, 1:3] = 21
+        u[21:39, 1:3, 1:3] = 21
+        u[16:44, -4:-2, 1:3] = 21
 
         # Tg = (ambient + 10 * ((thd - thw / ths - thw))) + (
         #             (u[window_mask] - (ambient + 10 * (thd - thw / ths - thw))) * (R_window))
@@ -245,11 +245,11 @@ def diffuse(nt):
                 ax.set_box_aspect([10, 4, 1])
                 ax.view_init(elev=30, azim=120)
                 # ax.set_title(f"Temperature Heat Map for Day {int(n)} in {location}")
-                fig.text(0.5, 0.80, f"Temperature Heat Map for Day {int(n)} in {location}", ha='center', va='top', fontsize=20)
+                fig.text(0.5, 0.80, f"Temperature Heat Map in {location}", ha='center', va='top', fontsize=20)
                 pyplot.pause(0.1)
 
         else:
-            if int(n) == -5 or int(n) == -3 or int(n) == -1 :
+            if int(n) == 255 or int(n) == -3 or int(n) == -1 :
                 ax.cla()  # clear it each time + reset
                 ax.scatter(
                     X,
@@ -265,13 +265,14 @@ def diffuse(nt):
                 ax.set_ylim(0, 24)
                 ax.set_zlim(0, 6)
                 ax.set_zticks([3, 6])
-                ax.set_xlabel('$x$', labelpad=20, fontsize=25)
-                ax.set_ylabel('$y$', labelpad=20, fontsize=25)
-                ax.set_zlabel('$z$', labelpad=20, fontsize=25)
+                ax.set_xlabel('$x$', labelpad=50, fontsize=35)
+                ax.set_ylabel('$y$', labelpad=15, fontsize=35)
+                ax.set_zlabel('$z$', labelpad=10, fontsize=35)
+                ax.tick_params(axis='both', which='major', labelsize=17)
                 ax.set_box_aspect([10, 4, 1])
                 ax.view_init(elev=30, azim=120)
                 # ax.set_title(f"Temperature Heat Map for Day {int(n)} in {location}")
-                fig.text(0.5, 0.80, f"Temperature Heat Map for Day {int(n)} in {location}", ha='center', va='top', fontsize=20)
+                fig.text(0.5, 0.80, f"Temperature Heat Map in {location}", ha='center', va='top', fontsize=20)
                 pyplot.pause(0.1)
 
         print(f"DAY: {n}")
